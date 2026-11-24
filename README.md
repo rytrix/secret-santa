@@ -51,16 +51,14 @@ Participants can't message each other through the bot. Gifts are held until the
 organizer runs `/santa end`, then each one is DMed to its recipient without the
 Santa's name. If a recipient has DMs closed, their gift is DMed back to their Santa.
 
-## Gift attachments (`attachments.go`, `metadata.go`)
+## Gift attachments (`attachments.go`)
 
 - JPEG, PNG, GIF or WebP images, up to 3 per gift and 8 MB each. That's below every upload limit
   Discord has had for bots; the current limit depends on the server.
 - The bot downloads its own copy right away, because Discord's links to
   uploaded files expire after about a day.
-- **Hidden photo info is removed before saving**: GPS location, phone model,
-  dates, author names, comments, and anything else that isn't pixels or color.
-  This is done without re-encoding, so quality doesn't change. The "rotate
-  this photo" flag is kept so phone photos don't arrive sideways.
+- The bot doesn't remove hidden photo info (GPS location, phone model…) itself;
+  it relies on Discord stripping it on upload.
 - Delivered as `gift-1.jpg`, `gift-2.png`… so the Santa's filenames aren't shown.
 
 ## Backups

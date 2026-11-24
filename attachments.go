@@ -11,6 +11,7 @@ package main
 //	santa-attachments/<guildID>-<round created, unix ns>/<santaID>-<random>-<n>.<ext>
 
 import (
+	"bytes"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -37,40 +38,67 @@ const (
 
 var httpClient = &http.Client{Timeout: 60 * time.Second}
 
-// fetchAttachment downloads one uploaded attachment, checks it's an image type we
-// can send, and strips its metadata.
-func fetchAttachment(a *discordgo.MessageAttachment) ([]byte, picFormat, error) {
+// fetchAttachment downloads one uploaded attachment and checks it's an image
+// type we can send, returning the bytes and the file extension to store it under.
+func fetchAttachment(a *discordgo.MessageAttachment) ([]byte, string, error) {
 	tooBig := userErr(fmt.Sprintf("**%s** is too big; the limit is %d MB per attachment.", a.Filename, maxAttachmentBytes>>20))
 	if a.Size > maxAttachmentBytes {
-		return nil, picFormat{}, tooBig
+		return nil, "", tooBig
 	}
 	resp, err := httpClient.Get(a.URL)
 	if err != nil {
-		return nil, picFormat{}, fmt.Errorf("downloading %s: %w", a.Filename, err)
+		return nil, "", fmt.Errorf("downloading %s: %w", a.Filename, err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return nil, picFormat{}, fmt.Errorf("downloading %s: %s", a.Filename, resp.Status)
+		return nil, "", fmt.Errorf("downloading %s: %s", a.Filename, resp.Status)
 	}
 	b, err := io.ReadAll(io.LimitReader(resp.Body, maxAttachmentBytes+1))
 	if err != nil {
-		return nil, picFormat{}, fmt.Errorf("downloading %s: %w", a.Filename, err)
+		return nil, "", fmt.Errorf("downloading %s: %w", a.Filename, err)
 	}
 	if len(b) > maxAttachmentBytes {
-		return nil, picFormat{}, tooBig
+		return nil, "", tooBig
 	}
-	f, ok := sniffPicture(b)
-	if !ok {
-		return nil, picFormat{}, userErr(fmt.Sprintf("**%s** can't be sent: attachments must be JPEG, PNG, GIF or WebP images.", a.Filename))
+	ext := pictureExt(b)
+	if ext == "" {
+		return nil, "", userErr(fmt.Sprintf("**%s** can't be sent: attachments must be JPEG, PNG, GIF or WebP images.", a.Filename))
 	}
-	clean, err := f.strip(b)
-	if err != nil {
-		return nil, picFormat{}, userErr(fmt.Sprintf("**%s** looks damaged; I couldn't read it.", a.Filename))
-	}
-	return clean, f, nil
+	return b, ext, nil
 }
 
-// saveAttachments downloads, cleans and stores attachments in dir, returning the
+// pictureExt identifies the image format from the file's first bytes rather
+// than trusting the uploaded filename or content type. Returns "" if it's not
+// a JPEG, PNG, GIF or WebP.
+func pictureExt(b []byte) string {
+	switch {
+	case bytes.HasPrefix(b, []byte{0xFF, 0xD8, 0xFF}):
+		return ".jpg"
+	case bytes.HasPrefix(b, []byte("\x89PNG\r\n\x1a\n")):
+		return ".png"
+	case bytes.HasPrefix(b, []byte("GIF87a")), bytes.HasPrefix(b, []byte("GIF89a")):
+		return ".gif"
+	case len(b) >= 12 && string(b[0:4]) == "RIFF" && string(b[8:12]) == "WEBP":
+		return ".webp"
+	}
+	return ""
+}
+
+func contentTypeOf(ext string) string {
+	switch ext {
+	case ".jpg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	}
+	return "application/octet-stream"
+}
+
+// saveAttachments downloads and stores attachments in dir, returning the
 // stored file names in upload order. On any failure nothing is left behind.
 func saveAttachments(dir, santa string, atts []*discordgo.MessageAttachment) ([]string, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -82,9 +110,9 @@ func saveAttachments(dir, santa string, atts []*discordgo.MessageAttachment) ([]
 	rand.Read(tag)
 	var names []string
 	for k, a := range atts {
-		data, f, err := fetchAttachment(a)
+		data, ext, err := fetchAttachment(a)
 		if err == nil {
-			name := fmt.Sprintf("%s-%s-%d%s", santa, hex.EncodeToString(tag), k+1, f.ext)
+			name := fmt.Sprintf("%s-%s-%d%s", santa, hex.EncodeToString(tag), k+1, ext)
 			err = os.WriteFile(filepath.Join(dir, name), data, 0o600)
 			if err == nil {
 				names = append(names, name)
