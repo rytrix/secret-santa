@@ -2,6 +2,15 @@
 # https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
 #
 # Binaries for programs and plugins
+santa
+
+go.sum
+santa.json
+
+vendor
+santa-backups
+santa-pictures
+
 *.exe
 *.exe~
 *.dll
