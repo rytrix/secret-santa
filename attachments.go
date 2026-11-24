@@ -41,7 +41,7 @@ var httpClient = &http.Client{Timeout: 60 * time.Second}
 // fetchAttachment downloads one uploaded attachment and checks it's an image
 // type we can send, returning the bytes and the file extension to store it under.
 func fetchAttachment(a *discordgo.MessageAttachment) ([]byte, string, error) {
-	tooBig := userErr(fmt.Sprintf("**%s** is too big; the limit is %d MB per attachment.", a.Filename, maxAttachmentBytes>>20))
+	tooBig := userErr(fmt.Sprintf("**%s** is too big; the limit is %d MB per image.", a.Filename, maxAttachmentBytes>>20))
 	if a.Size > maxAttachmentBytes {
 		return nil, "", tooBig
 	}
@@ -62,7 +62,7 @@ func fetchAttachment(a *discordgo.MessageAttachment) ([]byte, string, error) {
 	}
 	ext := pictureExt(b)
 	if ext == "" {
-		return nil, "", userErr(fmt.Sprintf("**%s** can't be sent: attachments must be JPEG, PNG, GIF or WebP images.", a.Filename))
+		return nil, "", userErr(fmt.Sprintf("**%s** isn't a JPEG, PNG, GIF or WebP image, so I can't send it.", a.Filename))
 	}
 	return b, ext, nil
 }

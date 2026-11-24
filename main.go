@@ -104,10 +104,10 @@ func commands() []*discordgo.ApplicationCommand {
 	att := func(name, desc string) *discordgo.ApplicationCommandOption {
 		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionAttachment, Name: name, Description: desc}
 	}
-	// Slash commands take one file per option, so each attachment is its own option.
+	// Slash commands take one file per option, so each image is its own option.
 	giftOpts := []*discordgo.ApplicationCommandOption{str("text", "A message for your recipient", false)}
 	for n := 1; n <= maxAttachments; n++ {
-		giftOpts = append(giftOpts, att(fmt.Sprintf("attachment%d", n), "An attachment to include"))
+		giftOpts = append(giftOpts, att(fmt.Sprintf("image%d", n), "An image to include (JPEG, PNG, GIF or WebP)"))
 	}
 	sub := func(name, desc string, opts ...*discordgo.ApplicationCommandOption) *discordgo.ApplicationCommandOption {
 		return &discordgo.ApplicationCommandOption{Type: discordgo.ApplicationCommandOptionSubCommand, Name: name, Description: desc, Options: opts}
@@ -186,7 +186,7 @@ func (b *Bot) onInteraction(s *discordgo.Session, i *discordgo.InteractionCreate
 	case "gift":
 		var atts []*discordgo.MessageAttachment
 		for n := 1; n <= maxAttachments; n++ {
-			o, ok := opts[fmt.Sprintf("attachment%d", n)]
+			o, ok := opts[fmt.Sprintf("image%d", n)]
 			if !ok || data.Resolved == nil {
 				continue
 			}
@@ -575,7 +575,7 @@ func assignmentText(e *Event, recipient string) string {
 	} else {
 		sb.WriteString("📝 They haven't written a wishlist yet. I'll DM you if they add one.\n")
 	}
-	sb.WriteString("\nSet your gift with `/santa gift` in the server: a message, up to 3 attachments, or both. I'll DM it to them, without your name, when the organizer ends the Secret Santa. Keep it secret! 🤫")
+	sb.WriteString("\nSet your gift with `/santa gift` in the server: a message, up to 3 images, or both. I'll DM it to them, without your name, when the organizer ends the Secret Santa. Keep it secret! 🤫")
 	return sb.String()
 }
 
@@ -601,7 +601,7 @@ func (b *Bot) myRecipient(c *ctx) {
 		}
 		msg += "\n\n🎁 **Your gift** (delivered when the Secret Santa ends):" + quoted(me.Gift)
 		if n := len(me.Attachments); n > 0 {
-			msg += fmt.Sprintf("\n📎 %d attachment%s", n, plural(n))
+			msg += fmt.Sprintf("\n🖼️ %d image%s", n, plural(n))
 		}
 		return nil
 	})
@@ -626,7 +626,7 @@ func giftText(gift string) string {
 // to message each other directly.
 func (b *Bot) setGift(c *ctx, text string, atts []*discordgo.MessageAttachment) {
 	if text == "" && len(atts) == 0 {
-		c.private("Add a message, an attachment, or both.")
+		c.private("Add a message, an image, or both.")
 		return
 	}
 	// Counted after quoting, since each line break becomes "\n> " in the DM.
@@ -693,7 +693,7 @@ func (b *Bot) setGift(c *ctx, text string, atts []*discordgo.MessageAttachment) 
 
 	msg := fmt.Sprintf("🎁 Gift for **%s** saved ✅", name)
 	if len(files) > 0 {
-		msg += fmt.Sprintf(" (%d attachment%s)", len(files), plural(len(files)))
+		msg += fmt.Sprintf(" (%d image%s)", len(files), plural(len(files)))
 	}
 	msg += "\nI'll DM it to them, without your name, when the organizer ends the Secret Santa. Running `/santa gift` again replaces it."
 	c.private(msg)

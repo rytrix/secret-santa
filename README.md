@@ -24,7 +24,7 @@ One slash command, `/santa`, with everything as subcommands. Written in Go on
    |---|---|---|
    | `DISCORD_TOKEN` | (required) | Bot token |
    | `SANTA_DATA` | `santa.json` | Where state is saved |
-   | `SANTA_ATTACHMENTS` | `santa-attachments` | Gift attachments waiting for `/santa end` |
+   | `SANTA_ATTACHMENTS` | `santa-attachments` | Gift images waiting for `/santa end` |
    | `SANTA_BACKUPS` | `santa-backups` | One folder per ended round |
    | `GUILD_ID` | (global) | Register commands to one server only; handy while developing |
 
@@ -40,7 +40,7 @@ One slash command, `/santa`, with everything as subcommands. Written in Go on
 | `/santa list` | anyone | Who's in, who's missing a wishlist |
 | `/santa draw` | organizer | Draw names and DM each person who they're buying for |
 | `/santa recipient` | participant | Show your recipient again, plus their wishlist and the gift you've set (only you see it) |
-| `/santa gift [text] [attachment1] [attachment2] [attachment3]` | participant | Set your gift: a message, up to 3 attachments, or both. Running it again replaces the whole gift. Nothing is sent yet |
+| `/santa gift [text] [image1] [image2] [image3]` | participant | Set your gift: a message, up to 3 images, or both. Running it again replaces the whole gift. Nothing is sent yet |
 | `/santa remove @user` | organizer | Remove someone before the draw |
 | `/santa end` | organizer | DM every saved gift to its recipient (anonymously), then delete the round |
 
@@ -51,7 +51,7 @@ Participants can't message each other through the bot. Gifts are held until the
 organizer runs `/santa end`, then each one is DMed to its recipient without the
 Santa's name. If a recipient has DMs closed, their gift is DMed back to their Santa.
 
-## Gift attachments (`attachments.go`)
+## Gift images (`attachments.go`)
 
 - JPEG, PNG, GIF or WebP images, up to 3 per gift and 8 MB each. That's below every upload limit
   Discord has had for bots; the current limit depends on the server.
@@ -69,9 +69,9 @@ ended. The folder contains:
 
 - `santa.json`: only this round (who drew whom, wishlists, gift text), in the
   same format as the main file
-- `santa-attachments/`: the round's gift attachments, moved there after delivery
+- `santa-attachments/`: the round's gift images, moved there after delivery
 
-Backups contain gift messages and attachments and are never deleted
+Backups contain gift messages and images and are never deleted
 automatically. Delete old ones yourself when you no longer need them.
 
 ## Several servers at once
@@ -81,7 +81,7 @@ server's round, keyed by server ID, and each server can have one round at a
 time. Commands only touch the round of the server they're typed in, and
 someone in two servers is in two separate rounds. Every change goes through a
 single lock, so two servers saving at the same moment can't overwrite each
-other. Slow work (downloading attachments, sending DMs) happens outside that lock,
+other. Slow work (downloading images, sending DMs) happens outside that lock,
 so a big `/santa end` in one server doesn't hold up commands in another.
 
 Run **one** copy of the bot per `santa.json`. Two copies sharing a file would
